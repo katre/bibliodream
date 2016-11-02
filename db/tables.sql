@@ -1,7 +1,7 @@
 CREATE TABLE book (
   id TEXT PRIMARY KEY NOT NULL,
-  author TEXT NOT NULL,
-  title TEXT NOT NULL,
+  author TEXT,
+  title TEXT,
   bookshelf TEXT
 );
 
