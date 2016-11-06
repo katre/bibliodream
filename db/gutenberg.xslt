@@ -12,7 +12,6 @@ INSERT INTO book VALUES (
   '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="//pgterms:ebook/@rdf:about"/></xsl:call-template>', -- id
   '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="//pgterms:name"/></xsl:call-template>', -- author
   '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="//dcterms:title"/></xsl:call-template>', -- title
-  '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="normalize-space(//pgterms:bookshelf)"/></xsl:call-template>' -- bookshelf
 );
 <xsl:for-each select="//pgterms:file[contains(@rdf:about, '.txt')]">
 INSERT INTO url VALUES (
@@ -20,7 +19,29 @@ INSERT INTO url VALUES (
   '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="@rdf:about"/></xsl:call-template>' -- url
 );
 </xsl:for-each>
+
+<xsl:call-template name="subject">
+  <xsl:with-param name="book_id" select="//pgterms:ebook/@rdf:about"/>
+  <xsl:with-param name="name" select="//pgterms:bookshelf"/>
+</xsl:call-template>
+<xsl:for-each select="//dcterms:subject/rdf:Description/rdf:value">
+  <xsl:call-template name="subject">
+    <xsl:with-param name="book_id" select="//pgterms:ebook/@rdf:about"/>
+    <xsl:with-param name="name" select="."/>
+  </xsl:call-template>
+</xsl:for-each>
   </xsl:template>
+
+  <xsl:template name="subject">
+    <xsl:param name="book_id"/>
+    <xsl:param name="name"/>
+    
+INSERT INTO subject VALUES (
+  '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="$book_id"/></xsl:call-template>', -- book_id
+  '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="normalize-space($name)"/></xsl:call-template>' -- name
+);
+  </xsl:template>
+
   <xsl:template name="escapeQuotes">
         <xsl:param name="txt"/>
         <!-- Escape with slash -->
