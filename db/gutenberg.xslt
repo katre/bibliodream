@@ -11,7 +11,7 @@
 INSERT INTO book VALUES (
   '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="//pgterms:ebook/@rdf:about"/></xsl:call-template>', -- id
   '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="//pgterms:name"/></xsl:call-template>', -- author
-  '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="//dcterms:title"/></xsl:call-template>', -- title
+  '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="//dcterms:title"/></xsl:call-template>' -- title
 );
 <xsl:for-each select="//pgterms:file[contains(@rdf:about, '.txt')]">
 INSERT INTO url VALUES (
