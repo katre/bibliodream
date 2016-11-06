@@ -31,7 +31,7 @@ class Book(object):
   def __str__(self):
     return 'Book %s' % self.id
 
-def get_books(con, bookshelf, limit):
+def lookup_books(con, bookshelf, limit):
   books = []
   con.row_factory = sqlite3.Row
   for row in con.execute('''
@@ -39,7 +39,6 @@ def get_books(con, bookshelf, limit):
       from book
         join url on book.id = url.book_id
       where book.bookshelf = :bookshelf
-        and url.url like '%.txt.utf-8'
       order by id
       limit :limit;''', {
         'bookshelf': FLAGS.bookshelf,
@@ -54,7 +53,7 @@ def maybe_download_books(dir, books):
 
 def read_data_sets(train_dir):
   con = sqlite3.connect(FLAGS.gutenberg_db)
-  training_books = get_books(con, FLAGS.bookshelf, FLAGS.book_count)
+  training_books = lookup_books(con, FLAGS.bookshelf, FLAGS.book_count)
   maybe_download_books(train_dir, training_books)
 
 def load_gutenberg(train_dir='GUTENBERG_data'):
