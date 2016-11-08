@@ -18,3 +18,7 @@ CREATE TABLE subject (
   name TEXT NOT NULL,
   FOREIGN KEY(book_id) REFERENCES book(id)
 );
+
+CREATE INDEX subject_book_idx
+ON subject(book_id);
+
