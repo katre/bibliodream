@@ -8,6 +8,8 @@ CREATE TABLE book (
 CREATE TABLE url (
   book_id TEXT NOT NULL,
   url TEXT NOT NULL,
+  content_type TEXT,
+  is_utf8 BOOLEAN,
   FOREIGN KEY(book_id) REFERENCES book(id)
 );
 

@@ -14,11 +14,11 @@ INSERT INTO book VALUES (
   '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="//dcterms:title"/></xsl:call-template>', -- title
   '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="//dcterms:language//rdf:value"/></xsl:call-template>' -- lang
 );
-<xsl:for-each select="//pgterms:file[contains(@rdf:about, '.txt')]">
-INSERT INTO url VALUES (
-  '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="//pgterms:ebook/@rdf:about"/></xsl:call-template>', -- id
-  '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="@rdf:about"/></xsl:call-template>' -- url
-);
+<xsl:for-each select="//pgterms:file">
+  <xsl:call-template name="url">
+    <xsl:with-param name="book_id" select="//pgterms:ebook/@rdf:about"/>
+    <xsl:with-param name="file" select="."/>
+  </xsl:call-template>
 </xsl:for-each>
 
 <xsl:call-template name="subject">
@@ -31,6 +31,29 @@ INSERT INTO url VALUES (
     <xsl:with-param name="name" select="."/>
   </xsl:call-template>
 </xsl:for-each>
+  </xsl:template>
+
+  <xsl:template name="url">
+    <xsl:param name="book_id"/>
+    <xsl:param name="file"/>
+
+    <xsl:variable name="name" select="@rdf:about"/>
+    <xsl:variable name="type" select="dcterms:format//rdf:value"/>
+    <xsl:if test="contains($type, 'text/plain') and contains($name, '.txt')">
+INSERT INTO url VALUES (
+  '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="$book_id"/></xsl:call-template>', -- id
+  '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="$name"/></xsl:call-template>', -- url
+  '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="$type"/></xsl:call-template>', -- content type
+  <xsl:choose>
+    <xsl:when test="contains($type, 'utf-8') or contains($name, 'utf-8')">
+  'TRUE'
+    </xsl:when>
+    <xsl:otherwise>
+  'FALSE'
+    </xsl:otherwise>
+  </xsl:choose>
+);
+    </xsl:if>
   </xsl:template>
 
   <xsl:template name="subject">
