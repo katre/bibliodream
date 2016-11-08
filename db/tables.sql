@@ -1,7 +1,8 @@
 CREATE TABLE book (
   id TEXT PRIMARY KEY NOT NULL,
   author TEXT,
-  title TEXT
+  title TEXT,
+  lang TEXT
 );
 
 CREATE TABLE url (
@@ -12,6 +13,6 @@ CREATE TABLE url (
 
 CREATE TABLE subject (
   book_id TEXT NOT NULL,
-  subject TEXT NOT NULL,
+  name TEXT NOT NULL,
   FOREIGN KEY(book_id) REFERENCES book(id)
 );
