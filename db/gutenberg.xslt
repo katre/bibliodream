@@ -8,6 +8,8 @@
     >
   <xsl:output method="text"/>
   <xsl:template match="/rdf:RDF">
+BEGIN TRANSACTION;
+
 INSERT INTO book VALUES (
   '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="//pgterms:ebook/@rdf:about"/></xsl:call-template>', -- id
   '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="//pgterms:name"/></xsl:call-template>', -- author
@@ -31,6 +33,8 @@ INSERT INTO book VALUES (
     <xsl:with-param name="name" select="."/>
   </xsl:call-template>
 </xsl:for-each>
+
+COMMIT TRANSACTION;
   </xsl:template>
 
   <xsl:template name="url">
@@ -66,6 +70,7 @@ INSERT INTO subject VALUES (
   '<xsl:call-template name="escapeQuotes"><xsl:with-param name="txt" select="normalize-space($name)"/></xsl:call-template>' -- name
 );
 </xsl:if>
+
   </xsl:template>
 
   <xsl:template name="escapeQuotes">
