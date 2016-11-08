@@ -21,11 +21,11 @@ class Book(object):
   def __init__(self, row):
     self.id = row['id']
     self.url = row['url']
-    self.subject = row['subject']
+    self.subjects = row['subjects'].split('||')
     self.filename = self.id.replace('/', '_') + '.txt'
 
   def maybe_download(self, dir):
-    print('Maybe downloading %s' % self)
+    #print('Maybe downloading %s' % self)
     base.maybe_download(self.filename, dir, self.url) 
 
   def __str__(self):
@@ -34,8 +34,7 @@ class Book(object):
 # The top 50 subjects.
 SUBJECT_QUERY = """
 select
-  upper(subject.name) as name,
-  count(book.id) as count
+  upper(subject.name) as name
 from
   book
   join subject on book.id = subject.book_id
@@ -48,12 +47,13 @@ BOOK_QUERY = """
 select
   book.id as id,
   url.url as url,
-  upper(subject.name) as subject
+  group_concat(upper(subject.name),'||') as subjects
 from book
   join url on book.id = url.book_id
   join subject on book.id = subject.book_id
 where
   url.is_utf8 = 'TRUE'
+group by id
 order by id
 limit :limit;
 """
@@ -67,11 +67,11 @@ def lookup_books(con, limit):
         'limit': limit
       }):
     books.append(Book(row))
-  print('Found %d books!' % len(books))
+  #print('Found %d books!' % len(books))
   return books
 
 def maybe_download_books(dir, books):
-  print('Considering downloading books.')
+  #print('Considering downloading books.')
   for book in books:
     book.maybe_download(dir)
 
