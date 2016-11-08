@@ -13,51 +13,75 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('gutenberg_db', './db/bibliodream.db',
                     """Location of the SQLite DB with book data.""")
-flags.DEFINE_string('bookshelf', 'Science Fiction',
-                    """The Gutenberg Bookshelf to train on.""")
-flags.DEFINE_integer('book_count', 10,
-                     """The number of books to fetch for each dataset.""")
+flags.DEFINE_integer('training_count', 10,
+                     """The number of books to fetch for training.""")
 
 
 class Book(object):
   def __init__(self, row):
     self.id = row['id']
     self.url = row['url']
+    self.subject = row['subject']
     self.filename = self.id.replace('/', '_') + '.txt'
 
   def maybe_download(self, dir):
+    print('Maybe downloading %s' % self)
     base.maybe_download(self.filename, dir, self.url) 
 
   def __str__(self):
     return 'Book %s' % self.id
 
-def lookup_books(con, bookshelf, limit):
+# The top 50 subjects.
+SUBJECT_QUERY = """
+select
+  upper(subject.name) as name,
+  count(book.id) as count
+from
+  book
+  join subject on book.id = subject.book_id
+group by name
+order by count desc
+limit 50;
+"""
+
+BOOK_QUERY = """
+select
+  book.id as id,
+  url.url as url,
+  upper(subject.name) as subject
+from book
+  join url on book.id = url.book_id
+  join subject on book.id = subject.book_id
+where
+  url.is_utf8 = 'TRUE'
+order by id
+limit :limit;
+"""
+
+def lookup_books(con, limit):
+  print('Looking up %d books to train on.' % limit)
   books = []
   con.row_factory = sqlite3.Row
-  for row in con.execute('''
-      select book.id as id, url.url as url
-      from book
-        join url on book.id = url.book_id
-      where book.bookshelf = :bookshelf
-      order by id
-      limit :limit;''', {
-        'bookshelf': FLAGS.bookshelf,
-        'limit': FLAGS.book_count
+  for row in con.execute(BOOK_QUERY,
+      {
+        'limit': limit
       }):
     books.append(Book(row))
+  print('Found %d books!' % len(books))
   return books
 
 def maybe_download_books(dir, books):
+  print('Considering downloading books.')
   for book in books:
     book.maybe_download(dir)
 
-def read_data_sets(train_dir):
+def read_data_sets(data_dir):
   con = sqlite3.connect(FLAGS.gutenberg_db)
-  training_books = lookup_books(con, FLAGS.bookshelf, FLAGS.book_count)
-  maybe_download_books(train_dir, training_books)
+  books = lookup_books(con, FLAGS.training_count)
+  maybe_download_books(data_dir, books)
 
-def load_gutenberg(train_dir='GUTENBERG_data'):
-  return read_data_sets(train_dir)
+def load_gutenberg(data_dir='GUTENBERG_data'):
+  return read_data_sets(data_dir)
 
 def main(argv=None):  # pylint: disable=unused-argument
   return load_gutenberg()
