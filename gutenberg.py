@@ -80,6 +80,12 @@ def read_data_sets(data_dir):
   books = lookup_books(con, FLAGS.training_count)
   maybe_download_books(data_dir, books)
 
+  # Split into train, verify, test sets.
+
+  # Create data set for each group
+
+  # return entire dataset
+
 def load_gutenberg(data_dir='GUTENBERG_data'):
   return read_data_sets(data_dir)
 
