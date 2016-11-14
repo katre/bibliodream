@@ -13,7 +13,9 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('gutenberg_db', './db/bibliodream.db',
                     """Location of the SQLite DB with book data.""")
-flags.DEFINE_integer('training_count', 10,
+flags.DEFINE_integer('subject_count', 10,
+                     """The number of subjects to fetch for categorizing.""")
+flags.DEFINE_integer('books_count', 10,
                      """The number of books to fetch for training.""")
 
 
@@ -31,6 +33,24 @@ class Book(object):
   def __str__(self):
     return 'Book %s' % self.id
 
+class Subjects(object):
+  def __init__(self):
+    self.names = []
+    self.next_ordinal = 0
+    self.ordinals = {}
+
+  def append(self, name):
+    self.names.append(name)
+    self.ordinals[name] = self.next_ordinal
+    self.next_ordinal += 1
+
+  def one_hot(self, name):
+    if name not in self.ordinals:
+      return None
+    arr = [0.0] * len(self.names)
+    arr[self.ordinals[name]] = 1.0
+    return arr
+
 # The top 50 subjects.
 SUBJECT_QUERY = """
 select
@@ -40,7 +60,7 @@ from
   join subject on book.id = subject.book_id
 group by name
 order by count desc
-limit 50;
+limit :limit;
 """
 
 BOOK_QUERY = """
@@ -58,13 +78,24 @@ order by id
 limit :limit;
 """
 
+def lookup_subjects(con, limit):
+  print('Looking up %d subjects to categorize on.' % limit)
+  subjects = Subjects()
+  con.row_factory = sqlite3.Row
+  for row in con.execute(SUBJECT_QUERY,
+      {
+        'limit': limit,
+      }):
+    subjects.append(row['name'])
+  return subjects
+
 def lookup_books(con, limit):
   print('Looking up %d books to train on.' % limit)
   books = []
   con.row_factory = sqlite3.Row
   for row in con.execute(BOOK_QUERY,
       {
-        'limit': limit
+        'limit': limit,
       }):
     books.append(Book(row))
   #print('Found %d books!' % len(books))
@@ -77,10 +108,18 @@ def maybe_download_books(dir, books):
 
 def read_data_sets(data_dir):
   con = sqlite3.connect(FLAGS.gutenberg_db)
-  books = lookup_books(con, FLAGS.training_count)
+  subjects = lookup_subjects(con, FLAGS.subject_count)
+  books = lookup_books(con, FLAGS.books_count)
   maybe_download_books(data_dir, books)
 
   # Split into train, verify, test sets.
+  train_size = int(0.80 * len(books))
+  verify_size = int(0.10 * len(books))
+  test_size = int(0.10 * len(books))
+
+  train_books = books[0..train_size]
+  verify_books = books[train_size+1:train_size+verify_size]
+  test_books = books[train_size+verify_size+1:]
 
   # Create data set for each group
 
