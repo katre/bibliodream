@@ -1,3 +1,4 @@
+runs/
 *.pyc
 *.db
 *.db-journal
