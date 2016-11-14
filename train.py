@@ -23,7 +23,7 @@ tf.flags.DEFINE_float('dev_sample_percentage', .1, 'Percentage of the training d
 
 # Model Hyperparameters
 tf.flags.DEFINE_integer('embedding_dim', 128, 'Dimensionality of character embedding (default: 128)')
-tf.flags.DEFINE_string('filter_sizes', '3,4,5', 'Comma-separated filter sizes (default: '3,4,5')')
+tf.flags.DEFINE_string('filter_sizes', '3,4,5', 'Comma-separated filter sizes (default: "3,4,5")')
 tf.flags.DEFINE_integer('num_filters', 128, 'Number of filters per filter size (default: 128)')
 tf.flags.DEFINE_float('dropout_keep_prob', 0.5, 'Dropout keep probability (default: 0.5)')
 tf.flags.DEFINE_float('l2_reg_lambda', 0.0, 'L2 regularizaion lambda (default: 0.0)')
@@ -71,7 +71,7 @@ def load_data():
     text = clean_str(text)
     x.append(clean_str(text))
     y.append(subject)
-  return (x, y)
+  return (np.array(x), np.array(y))
 
 
 # Build vocabulary
@@ -85,10 +85,8 @@ def build_vocab(texts):
 # Randomly shuffle data
 def shuffle_data(x, y):
   np.random.seed(10)
-  shuffle_indices = np.random.permutation(np.arange(len(y)))
-  x_shuffled = x[shuffle_indices]
-  y_shuffled = y[shuffle_indices]
-  return (x_shuffled, y_shuffled)
+  np.random.shuffle(x)
+  np.random.shuffle(y)
 
 # Split train/test set
 def split_data(x, y):
@@ -256,7 +254,7 @@ def main(argv=None):
   #return
 
   print('Shuffling data...')
-  x, y = shuffle_data(x, y)
+  shuffle_data(x, y)
   #for i in xrange(len(x)):
   #  print('Text: %s' % x[i][:100])
   #  print('Subject: %s' % y[i])
@@ -270,7 +268,7 @@ def main(argv=None):
   print('Train/Dev split: {:d}/{:d}'.format(len(y_train), len(y_dev)))
 
   print('Training...')
-  train(x, y, vocab_processor)
+  train(x_train, y_train, x_dev, y_dev, vocab_processor)
 
 if __name__ == '__main__':
   from tensorflow.python.platform import app
