@@ -51,14 +51,20 @@ class Subjects(object):
     arr[self.ordinals[name]] = 1.0
     return arr
 
-# The top 50 subjects.
+  def __str__(self):
+    return 'Subjects: [%s]' % ', '.join(self.names)
+
+# The top subjects for english-language books.
 SUBJECT_QUERY = """
 select
-  upper(subject.name) as name
-from
-  book
-  join subject on book.id = subject.book_id
-group by name
+  upper(subject.name) as name,
+  count(*) as count
+from subject
+  join book on subject.book_id = book.id
+where
+  length(subject.name) > 2
+  and book.lang = 'en'
+group by upper(subject.name)
 order by count desc
 limit :limit;
 """
@@ -73,6 +79,7 @@ from book
   join subject on book.id = subject.book_id
 where
   url.is_utf8 = 'TRUE'
+  and upper(subject.name) in (%(subject_clause)s)
 group by id
 order by id
 limit :limit;
@@ -89,15 +96,25 @@ def lookup_subjects(con, limit):
     subjects.append(row['name'])
   return subjects
 
-def lookup_books(con, limit):
+def lookup_books(con, limit, subjects):
   print('Looking up %d books to train on.' % limit)
   books = []
+
+  # Create the subject-specific query
+  subject_clause = ', '.join(':subject_%d' % i for i in xrange(len(subjects)))
+  query = BOOK_QUERY % {'subject_clause': subject_clause}
+
+  # Create the arguments.
+  arguments = {}
+  for i, subject in enumerate(subjects):
+    arguments['subject_%d' % i] = subject
+  arguments['limit'] = limit
+
+  # Execute the query
   con.row_factory = sqlite3.Row
-  for row in con.execute(BOOK_QUERY,
-      {
-        'limit': limit,
-      }):
+  for row in con.execute(query, arguments):
     books.append(Book(row))
+
   #print('Found %d books!' % len(books))
   return books
 
@@ -109,7 +126,9 @@ def maybe_download_books(dir, books):
 def read_data_sets(data_dir):
   con = sqlite3.connect(FLAGS.gutenberg_db)
   subjects = lookup_subjects(con, FLAGS.subject_count)
-  books = lookup_books(con, FLAGS.books_count)
+  #print('Found %s' % subjects)
+  books = lookup_books(con, FLAGS.books_count, subjects.names)
+  #print('Found books:\n%s' % '\n'.join(str(book) for book in books))
   maybe_download_books(data_dir, books)
 
   # Split into train, verify, test sets.
