@@ -131,18 +131,7 @@ def read_data_sets(data_dir):
   #print('Found books:\n%s' % '\n'.join(str(book) for book in books))
   maybe_download_books(data_dir, books)
 
-  # Split into train, verify, test sets.
-  train_size = int(0.80 * len(books))
-  verify_size = int(0.10 * len(books))
-  test_size = int(0.10 * len(books))
-
-  train_books = books[0..train_size]
-  verify_books = books[train_size+1:train_size+verify_size]
-  test_books = books[train_size+verify_size+1:]
-
-  # Create data set for each group
-
-  # return entire dataset
+  return (subjects, books)
 
 def load_gutenberg(data_dir='GUTENBERG_data'):
   return read_data_sets(data_dir)
