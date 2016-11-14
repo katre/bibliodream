@@ -17,7 +17,7 @@ flags.DEFINE_string('gutenberg_db', './db/bibliodream.db',
                     """Location of the SQLite DB with book data.""")
 flags.DEFINE_integer('subject_count', 10,
                      """The number of subjects to fetch for categorizing.""")
-flags.DEFINE_integer('books_count', 10,
+flags.DEFINE_integer('book_count', 10,
                      """The number of books to fetch for training.""")
 
 
@@ -137,7 +137,7 @@ def read_data_sets(data_dir):
   con = sqlite3.connect(FLAGS.gutenberg_db)
   subjects = lookup_subjects(con, FLAGS.subject_count)
   #print('Found %s' % subjects)
-  books = lookup_books(con, FLAGS.books_count, subjects.names)
+  books = lookup_books(con, FLAGS.book_count, subjects.names)
   #print('Found books:\n%s' % '\n'.join(str(book) for book in books))
   maybe_download_books(data_dir, books)
 
