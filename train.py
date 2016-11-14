@@ -12,7 +12,7 @@ import itertools
 from tensorflow.contrib import learn
 
 # Local things.
-#import data_helpers
+import gutenberg
 from text_cnn import TextCNN
 
 # Parameters
@@ -42,14 +42,38 @@ FLAGS = tf.flags.FLAGS
 # Data Preparatopn
 # ==================================================
 
+def clean_str(string):
+  """
+  Tokenization/string cleaning for all datasets except for SST.
+  Original taken from https://github.com/yoonkim/CNN_sentence/blob/master/process_data.py
+  """
+  string = re.sub(r"[^A-Za-z0-9(),!?\'\`]", " ", string)
+  string = re.sub(r"\'s", " \'s", string)
+  string = re.sub(r"\'ve", " \'ve", string)
+  string = re.sub(r"n\'t", " n\'t", string)
+  string = re.sub(r"\'re", " \'re", string)
+  string = re.sub(r"\'d", " \'d", string)
+  string = re.sub(r"\'ll", " \'ll", string)
+  string = re.sub(r",", " , ", string)
+  string = re.sub(r"!", " ! ", string)
+  string = re.sub(r"\(", " \( ", string)
+  string = re.sub(r"\)", " \) ", string)
+  string = re.sub(r"\?", " \? ", string)
+  string = re.sub(r"\s{2,}", " ", string)
+  return string.strip().lower()
+
 # Load data
 def load_data():
   """Load and return correctly labelled training data."""
   print("Loading data...")
-  #x_text, y = data_helpers.load_data_and_labels(FLAGS.positive_data_file, FLAGS.negative_data_file)
-  x = texts
-  y = one_hot vectors of subjects
+  x = []
+  y = []
+  for (text, subject) in gutenberg.load_data_and_label():
+    text = clean_str(text)
+    x.append(clean_str(text))
+    y.append(subject)
   return (x, y)
+
 
 # Build vocabulary
 def build_vocab(texts):
