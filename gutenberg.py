@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 """Functions for downloading and reading Gutenberg books."""
 
 from __future__ import absolute_import
@@ -25,10 +27,18 @@ class Book(object):
     self.url = row['url']
     self.subjects = row['subjects'].split('||')
     self.filename = self.id.replace('/', '_') + '.txt'
+    self.local_file = None
 
   def maybe_download(self, dir):
     #print('Maybe downloading %s' % self)
-    base.maybe_download(self.filename, dir, self.url) 
+    self.local_file = base.maybe_download(self.filename, dir, self.url) 
+
+  @property
+  def data(self):
+    if not self.local_file:
+      return ''
+    with open(self.local_file, 'r') as f:
+      return f.read()
 
   def __str__(self):
     return 'Book %s' % self.id
@@ -44,11 +54,11 @@ class Subjects(object):
     self.ordinals[name] = self.next_ordinal
     self.next_ordinal += 1
 
-  def one_hot(self, name):
-    if name not in self.ordinals:
-      return None
+  def one_hot(self, targets):
     arr = [0.0] * len(self.names)
-    arr[self.ordinals[name]] = 1.0
+    for target in targets:
+      if target in self.ordinals:
+        arr[self.ordinals[target]] = 1.0
     return arr
 
   def __str__(self):
@@ -136,8 +146,20 @@ def read_data_sets(data_dir):
 def load_gutenberg(data_dir='GUTENBERG_data'):
   return read_data_sets(data_dir)
 
+def load_data_and_label():
+  """Load Gutenberg data and return a generator for the book and subject data."""
+  subjects, books = read_data_sets(data_dir='GUTENBERG_data')
+  
+  for book in books:
+    book_text = book.data
+    subject_one_hot = subjects.one_hot(book.subjects)
+    yield (book_text, subject_one_hot)
+
 def main(argv=None):  # pylint: disable=unused-argument
-  return load_gutenberg()
+  generator = load_data_and_label()
+  for (text, subject) in generator:
+    print('Text: %s' % text[:100])
+    print('Subject: %s' % subject)
 
 if __name__ == '__main__':
   from tensorflow.python.platform import app
