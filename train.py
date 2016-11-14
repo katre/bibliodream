@@ -244,6 +244,11 @@ def main(argv=None):
 
   # Train on the data.
   x, y = load_data()
+  for i in xrange(len(x)):
+    print('Text: %s' % x[i][:100])
+    print('Subject: %s' % y[i])
+  return
+
   x, vocab_processor = build_vocab(x)
   x, y = shuffle_data(x, y)
   ((x_train, y_train), (x_dev, y_dev)) = split_data(x, y)
