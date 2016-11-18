@@ -59,12 +59,12 @@ def lookup_books(conn, limit, subjects):
   books = []
 
   # Create the subject-specific query
-  subject_clause = ', '.join(':subject_%d' % i for i in xrange(len(subjects)))
+  subject_clause = ', '.join(':subject_%d' % i for i in xrange(len(subjects.names)))
   query = BOOK_QUERY % {'subject_clause': subject_clause}
 
   # Create the arguments.
   arguments = {}
-  for i, subject in enumerate(subjects):
+  for i, subject in enumerate(subjects.names):
     arguments['subject_%d' % i] = subject
   arguments['limit'] = limit
 
@@ -130,24 +130,24 @@ class GutenbergData(object):
     self.subjects_limit = subjects_limit
     self.book_limit = book_limit
 
-    self.subjects = None
-    self.books = None
+    self.subjects_data = None
+    self.books_data = None
 
     # Open the DB eagerly.
     self.conn = sqlite3.connect(FLAGS.gutenberg_db)
     self.conn.row_factory = sqlite3.Row
 
   @property
-  def subjects(self)
-    if not self.subjects:
-      self.subjects = lookup_subjects(self.conn, self.subjects_limit)
-    return self.subjects
+  def subjects(self):
+    if not self.subjects_data:
+      self.subjects_data = lookup_subjects(self.conn, self.subjects_limit)
+    return self.subjects_data
 
   @property
   def books(self):
-    if not self.books:
-      self.books = lookup_books(self.conn, self.books_limit, self.subjects)
-    return self.books
+    if not self.books_data:
+      self.books_data = lookup_books(self.conn, self.book_limit, self.subjects)
+    return self.books_data
 
   def labelled_data(self):
     for book in self.books:
@@ -156,7 +156,7 @@ class GutenbergData(object):
       yield (book_text, subject_one_hot)
     
 def main(argv=None):  # pylint: disable=unused-argument
-  gutenberg = Gutenberg(10, 20)
+  gutenberg = GutenbergData(10, 20)
   for (text, subject) in gutenberg.labelled_data():
     print('Text: %s' % text[:100])
     print('Subject: %s' % subject)
