@@ -5,6 +5,13 @@ CREATE TABLE book (
   lang TEXT
 );
 
+CREATE TABLE file (
+  book_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  is_utf8 BOOLEAN,
+  FOREIGN KEY(book_id) REFERENCES book(id)
+);
+
 CREATE TABLE url (
   book_id TEXT NOT NULL,
   url TEXT NOT NULL,
