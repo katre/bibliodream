@@ -13,35 +13,95 @@ from tensorflow.python.platform import flags
 
 FLAGS = flags.FLAGS
 
+flags.DEFINE_string('gutenberg_data', './gutenberg_data',
+                    """Location of Gutenberg books.""")
 flags.DEFINE_string('gutenberg_db', './db/bibliodream.db',
                     """Location of the SQLite DB with book data.""")
-flags.DEFINE_integer('subject_count', 10,
-                     """The number of subjects to fetch for categorizing.""")
-flags.DEFINE_integer('book_count', 10,
-                     """The number of books to fetch for training.""")
 
+
+# Queries to use against the DB.
+
+# The top subjects for english-language books.
+SUBJECT_QUERY = """
+select
+  upper(subject.name) as name,
+  count(*) as count
+from subject
+  join book on subject.book_id = book.id
+where
+  length(subject.name) > 2
+  and book.lang = 'en'
+group by upper(subject.name)
+order by count desc
+limit :limit;
+"""
+
+BOOK_QUERY = """
+select
+  book.id as id,
+  file.path as path,
+  group_concat(upper(subject.name),'||') as subjects
+from book
+  join file on book.id = file.book_id
+  join subject on book.id = subject.book_id
+where
+  file.is_utf8 = 'TRUE'
+  and upper(subject.name) in (%(subject_clause)s)
+group by id
+order by id
+limit :limit;
+"""
+
+# Books data.
+
+def lookup_books(conn, limit, subjects):
+  print('Looking up %d books to train on.' % limit)
+  books = []
+
+  # Create the subject-specific query
+  subject_clause = ', '.join(':subject_%d' % i for i in xrange(len(subjects)))
+  query = BOOK_QUERY % {'subject_clause': subject_clause}
+
+  # Create the arguments.
+  arguments = {}
+  for i, subject in enumerate(subjects):
+    arguments['subject_%d' % i] = subject
+  arguments['limit'] = limit
+
+  # Execute the query
+  for row in conn.execute(query, arguments):
+    books.append(Book(row))
+
+  #print('Found %d books!' % len(books))
+  #print('Found books:\n%s' % '\n'.join(str(book) for book in books))
+  return books
 
 class Book(object):
   def __init__(self, row):
     self.id = row['id']
-    self.url = row['url']
+    self.path = row['path']
     self.subjects = row['subjects'].split('||')
-    self.filename = self.id.replace('/', '_') + '.txt'
-    self.local_file = None
-
-  def maybe_download(self, dir):
-    #print('Maybe downloading %s' % self)
-    self.local_file = base.maybe_download(self.filename, dir, self.url) 
 
   @property
   def data(self):
-    if not self.local_file:
-      return ''
-    with open(self.local_file, 'r') as f:
+    with open(self.path, 'r') as f:
       return f.read()
 
   def __str__(self):
     return 'Book %s' % self.id
+
+# Subjects data.
+
+def lookup_subjects(conn, limit):
+  print('Looking up %d subjects to categorize on.' % limit)
+  subjects = Subjects()
+  for row in conn.execute(SUBJECT_QUERY,
+      {
+        'limit': limit,
+      }):
+    subjects.append(row['name'])
+  #print('Found %s' % subjects)
+  return subjects
 
 class Subjects(object):
   def __init__(self):
@@ -64,100 +124,40 @@ class Subjects(object):
   def __str__(self):
     return 'Subjects: [%s]' % ', '.join(self.names)
 
-# The top subjects for english-language books.
-SUBJECT_QUERY = """
-select
-  upper(subject.name) as name,
-  count(*) as count
-from subject
-  join book on subject.book_id = book.id
-where
-  length(subject.name) > 2
-  and book.lang = 'en'
-group by upper(subject.name)
-order by count desc
-limit :limit;
-"""
+# Overall main class.
+class GutenbergData(object):
+  def __init__(self, subjects_limit, book_limit):
+    self.subjects_limit = subjects_limit
+    self.book_limit = book_limit
 
-BOOK_QUERY = """
-select
-  book.id as id,
-  url.url as url,
-  group_concat(upper(subject.name),'||') as subjects
-from book
-  join url on book.id = url.book_id
-  join subject on book.id = subject.book_id
-where
-  url.is_utf8 = 'TRUE'
-  and upper(subject.name) in (%(subject_clause)s)
-group by id
-order by id
-limit :limit;
-"""
+    self.subjects = None
+    self.books = None
 
-def lookup_subjects(con, limit):
-  print('Looking up %d subjects to categorize on.' % limit)
-  subjects = Subjects()
-  con.row_factory = sqlite3.Row
-  for row in con.execute(SUBJECT_QUERY,
-      {
-        'limit': limit,
-      }):
-    subjects.append(row['name'])
-  return subjects
+    # Open the DB eagerly.
+    self.conn = sqlite3.connect(FLAGS.gutenberg_db)
+    self.conn.row_factory = sqlite3.Row
 
-def lookup_books(con, limit, subjects):
-  print('Looking up %d books to train on.' % limit)
-  books = []
+  @property
+  def subjects(self)
+    if not self.subjects:
+      self.subjects = lookup_subjects(self.conn, self.subjects_limit)
+    return self.subjects
 
-  # Create the subject-specific query
-  subject_clause = ', '.join(':subject_%d' % i for i in xrange(len(subjects)))
-  query = BOOK_QUERY % {'subject_clause': subject_clause}
+  @property
+  def books(self):
+    if not self.books:
+      self.books = lookup_books(self.conn, self.books_limit, self.subjects)
+    return self.books
 
-  # Create the arguments.
-  arguments = {}
-  for i, subject in enumerate(subjects):
-    arguments['subject_%d' % i] = subject
-  arguments['limit'] = limit
-
-  # Execute the query
-  con.row_factory = sqlite3.Row
-  for row in con.execute(query, arguments):
-    books.append(Book(row))
-
-  #print('Found %d books!' % len(books))
-  return books
-
-def maybe_download_books(dir, books):
-  #print('Considering downloading books.')
-  for book in books:
-    book.maybe_download(dir)
-
-def read_data_sets(data_dir):
-  con = sqlite3.connect(FLAGS.gutenberg_db)
-  subjects = lookup_subjects(con, FLAGS.subject_count)
-  #print('Found %s' % subjects)
-  books = lookup_books(con, FLAGS.book_count, subjects.names)
-  #print('Found books:\n%s' % '\n'.join(str(book) for book in books))
-  maybe_download_books(data_dir, books)
-
-  return (subjects, books)
-
-def load_gutenberg(data_dir='GUTENBERG_data'):
-  return read_data_sets(data_dir)
-
-def load_data_and_label():
-  """Load Gutenberg data and return a generator for the book and subject data."""
-  subjects, books = read_data_sets(data_dir='GUTENBERG_data')
-  
-  for book in books:
-    book_text = book.data
-    subject_one_hot = subjects.one_hot(book.subjects)
-    yield (book_text, subject_one_hot)
-
+  def labelled_data(self):
+    for book in self.books:
+      book_text = book.data
+      subject_one_hot = self.subjects.one_hot(book.subjects)
+      yield (book_text, subject_one_hot)
+    
 def main(argv=None):  # pylint: disable=unused-argument
-  generator = load_data_and_label()
-  for (text, subject) in generator:
+  gutenberg = Gutenberg(10, 20)
+  for (text, subject) in gutenberg.labelled_data():
     print('Text: %s' % text[:100])
     print('Subject: %s' % subject)
 
