@@ -19,6 +19,8 @@ from text_cnn import TextCNN
 # ==================================================
 
 # Data loading params
+tf.flags.DEFINE_integer('subject_count', 10, 'The number of subjects to use.')
+tf.flags.DEFINE_integer('book_limit', 20, 'The max number of books to load.')
 tf.flags.DEFINE_float('dev_sample_percentage', .1, 'Percentage of the training data to use for validation')
 
 # Model Hyperparameters
@@ -63,11 +65,11 @@ def clean_str(string):
   return string.strip().lower()
 
 # Load data
-def load_data():
+def load_data(gutenberg_data):
   """Load and return correctly labelled training data."""
   x = []
   y = []
-  for (text, subject) in gutenberg.load_data_and_label():
+  for (text, subject) in data.labelled_data():
     text = clean_str(text)
     x.append(clean_str(text))
     y.append(subject)
@@ -241,7 +243,8 @@ def main(argv=None):
 
   # Train on the data.
   print('Loading data...')
-  x, y = load_data()
+  gutenberg_data = gutenberg.GutenbergData(FLAGS.subject_count, FLAGS.book_limit)
+  x, y = load_data(gutenber_data)
   #for i in xrange(len(x)):
   #  print('Text: %s' % x[i][:100])
   #  print('Subject: %s' % y[i])
@@ -269,6 +272,8 @@ def main(argv=None):
 
   print('Training...')
   train(x_train, y_train, x_dev, y_dev, vocab_processor)
+
+  # TODO: write subjects data to runfile
 
 if __name__ == '__main__':
   from tensorflow.python.platform import app
