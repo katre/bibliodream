@@ -102,7 +102,12 @@ def split_data(x, y):
 # Training
 # ==================================================
 
-def train(x_train, y_train, x_dev, y_dev, vocab_processor):
+def find_output_dir():
+  timestamp = str(int(time.time()))
+  out_dir = os.path.abspath(os.path.join(os.path.curdir, 'runs', timestamp))
+  return out_dir
+
+def train(x_train, y_train, x_dev, y_dev, vocab_processor, out_dir):
   with tf.Graph().as_default():
     session_conf = tf.ConfigProto(
         allow_soft_placement=FLAGS.allow_soft_placement,
@@ -135,8 +140,6 @@ def train(x_train, y_train, x_dev, y_dev, vocab_processor):
       grad_summaries_merged = tf.merge_summary(grad_summaries)
 
       # Output directory for models and summaries
-      timestamp = str(int(time.time()))
-      out_dir = os.path.abspath(os.path.join(os.path.curdir, 'runs', timestamp))
       print('Writing to {}\n'.format(out_dir))
 
       # Summaries for loss and accuracy
@@ -159,9 +162,6 @@ def train(x_train, y_train, x_dev, y_dev, vocab_processor):
       if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
       saver = tf.train.Saver(tf.all_variables())
-
-      # Write vocabulary
-      vocab_processor.save(os.path.join(out_dir, 'vocab'))
 
       # Initialize all variables
       sess.run(tf.initialize_all_variables())
@@ -270,10 +270,16 @@ def main(argv=None):
   print('Vocabulary Size: {:d}'.format(len(vocab_processor.vocabulary_)))
   print('Train/Dev split: {:d}/{:d}'.format(len(y_train), len(y_dev)))
 
-  print('Training...')
-  train(x_train, y_train, x_dev, y_dev, vocab_processor)
+  # Write vocabulary
+  out_dir = find_output_dir()
+  vocab_processor.save(os.path.join(out_dir, 'vocab'))
 
-  # TODO: write subjects data to runfile
+  # Write subjects data
+  gutenberg.subjects.save(os.path.join(out_dir, 'vocab'))
+
+  print('Training...')
+  train(x_train, y_train, x_dev, y_dev, vocab_processor, out_dir)
+
 
 if __name__ == '__main__':
   from tensorflow.python.platform import app
