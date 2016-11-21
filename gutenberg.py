@@ -10,6 +10,14 @@ import sqlite3
 
 from tensorflow.contrib.learn.python.learn.datasets import base
 from tensorflow.python.platform import flags
+from tensorflow.python.platform import gfile
+
+try:
+  # pylint: disable=g-import-not-at-top
+  import cPickle as pickle
+except ImportError:
+  # pylint: disable=g-import-not-at-top
+  import pickle
 
 FLAGS = flags.FLAGS
 
@@ -53,30 +61,6 @@ limit :limit;
 """
 
 # Books data.
-
-# TODO: add data shuffle
-def lookup_books(conn, limit, subjects):
-  print('Looking up %d books to train on.' % limit)
-  books = []
-
-  # Create the subject-specific query
-  subject_clause = ', '.join(':subject_%d' % i for i in xrange(len(subjects.names)))
-  query = BOOK_QUERY % {'subject_clause': subject_clause}
-
-  # Create the arguments.
-  arguments = {}
-  for i, subject in enumerate(subjects.names):
-    arguments['subject_%d' % i] = subject
-  arguments['limit'] = limit
-
-  # Execute the query
-  for row in conn.execute(query, arguments):
-    books.append(Book(row))
-
-  #print('Found %d books!' % len(books))
-  #print('Found books:\n%s' % '\n'.join(str(book) for book in books))
-  return books
-
 class Book(object):
   def __init__(self, row):
     self.id = row['id']
@@ -91,19 +75,31 @@ class Book(object):
   def __str__(self):
     return 'Book %s' % self.id
 
+  @classmethod
+  # TODO: add data shuffle
+  def load_by_query(cls, conn, limit, subjects):
+    print('Looking up %d books to train on.' % limit)
+    books = []
+
+    # Create the subject-specific query
+    subject_clause = ', '.join(':subject_%d' % i for i in xrange(len(subjects.names)))
+    query = BOOK_QUERY % {'subject_clause': subject_clause}
+
+    # Create the arguments.
+    arguments = {}
+    for i, subject in enumerate(subjects.names):
+      arguments['subject_%d' % i] = subject
+    arguments['limit'] = limit
+
+    # Execute the query
+    for row in conn.execute(query, arguments):
+      books.append(Book(row))
+
+    #print('Found %d books!' % len(books))
+    #print('Found books:\n%s' % '\n'.join(str(book) for book in books))
+    return books
+
 # Subjects data.
-
-def lookup_subjects(conn, limit):
-  print('Looking up %d subjects to categorize on.' % limit)
-  subjects = Subjects()
-  for row in conn.execute(SUBJECT_QUERY,
-      {
-        'limit': limit,
-      }):
-    subjects.append(row['name'])
-  #print('Found %s' % subjects)
-  return subjects
-
 class Subjects(object):
   def __init__(self):
     self.names = []
@@ -125,6 +121,40 @@ class Subjects(object):
   def __str__(self):
     return 'Subjects: [%s]' % ', '.join(self.names)
 
+  def save(self, filename):
+    """Saves subject data into given file.
+
+    Args:
+      filename: Path to output file.
+    """
+    with gfile.Open(filename, 'wb') as f:
+      f.write(pickle.dumps(self))
+
+  @classmethod
+  def load_by_query(cls, conn, limit):
+    print('Looking up %d subjects to categorize on.' % limit)
+    subjects = Subjects()
+    for row in conn.execute(SUBJECT_QUERY,
+        {
+          'limit': limit,
+        }):
+      subjects.append(row['name'])
+    #print('Found %s' % subjects)
+    return subjects
+
+  @classmethod
+  def restore(cls, filename):
+    """Restores subject data from given file.
+
+    Args:
+      filename: Path to file to load from.
+
+    Returns:
+      Subjects object.
+    """
+    with gfile.Open(filename, 'rb') as f:
+      return pickle.loads(f.read())
+
 # Overall main class.
 class GutenbergData(object):
   def __init__(self, subjects_limit, book_limit):
@@ -141,13 +171,13 @@ class GutenbergData(object):
   @property
   def subjects(self):
     if not self.subjects_data:
-      self.subjects_data = lookup_subjects(self.conn, self.subjects_limit)
+      self.subjects_data = Subjects.load_by_query(self.conn, self.subjects_limit)
     return self.subjects_data
 
   @property
   def books(self):
     if not self.books_data:
-      self.books_data = lookup_books(self.conn, self.book_limit, self.subjects)
+      self.books_data = Book.load_by_query(self.conn, self.book_limit, self.subjects)
     return self.books_data
 
   def labelled_data(self):
