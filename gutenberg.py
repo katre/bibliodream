@@ -111,6 +111,13 @@ class Subjects(object):
     self.ordinals[name] = self.next_ordinal
     self.next_ordinal += 1
 
+  def as_names(self, one_hot):
+    results = []
+    for i, value in enumerate(one_hot):
+      if value == 1.0:
+        results.append(self.names[i])
+    return results
+
   def one_hot(self, targets):
     arr = [0.0] * len(self.names)
     for target in targets:
