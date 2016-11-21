@@ -54,6 +54,7 @@ limit :limit;
 
 # Books data.
 
+# TODO: add data shuffle
 def lookup_books(conn, limit, subjects):
   print('Looking up %d books to train on.' % limit)
   books = []
