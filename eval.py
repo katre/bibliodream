@@ -97,6 +97,7 @@ with graph.as_default():
             all_predictions = np.concatenate([all_predictions, batch_predictions])
 
 result = all_predictions
+print 'Raw results: %s' % result
 subjects_path = os.path.join(FLAGS.checkpoint_dir, "..", "subjects")
 subjects = gutenberg.Subjects.restore(subjects_path)
 print 'Found subjects: %s' % ','.join(subjects.as_names(result.tolist()))
