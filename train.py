@@ -65,7 +65,7 @@ def clean_str(string):
   return string.strip().lower()
 
 # Load data
-def load_data(gutenberg_data):
+def load_data(data):
   """Load and return correctly labelled training data."""
   x = []
   y = []
@@ -105,6 +105,7 @@ def split_data(x, y):
 def find_output_dir():
   timestamp = str(int(time.time()))
   out_dir = os.path.abspath(os.path.join(os.path.curdir, 'runs', timestamp))
+  os.makedirs(out_dir)
   return out_dir
 
 def train(x_train, y_train, x_dev, y_dev, vocab_processor, out_dir):
@@ -244,7 +245,7 @@ def main(argv=None):
   # Train on the data.
   print('Loading data...')
   gutenberg_data = gutenberg.GutenbergData(FLAGS.subject_count, FLAGS.book_limit)
-  x, y = load_data(gutenber_data)
+  x, y = load_data(gutenberg_data)
   #for i in xrange(len(x)):
   #  print('Text: %s' % x[i][:100])
   #  print('Subject: %s' % y[i])
@@ -275,7 +276,7 @@ def main(argv=None):
   vocab_processor.save(os.path.join(out_dir, 'vocab'))
 
   # Write subjects data
-  gutenberg.subjects.save(os.path.join(out_dir, 'vocab'))
+  gutenberg_data.subjects.save(os.path.join(out_dir, 'subjects'))
 
   print('Training...')
   train(x_train, y_train, x_dev, y_dev, vocab_processor, out_dir)
