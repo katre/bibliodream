@@ -8,12 +8,12 @@ Instead, I took my Gutenberg book data, grabbed a random selection of 1000 of th
 ## Step 0: Project Setup
 
 1. Download the [Gutenberg feed in RDF format](https://www.gutenberg.org/wiki/Gutenberg:Feeds).
-2. Then import that into a Sqlite database with the [db/init.sh] script.
+2. Then import that into a Sqlite database with the db/init.sh script.
 3. Rsync a copy of just the text files from Gutenberg.
 ```
 $ rsync -av --del --include='*.txt*' --exclude='*' ftp@ftp.ibiblio.org::gutenberg gutenberg/
 ```
-4. Import the file table to the database with [db/load_books.sh].
+4. Import the file table to the database with db/load_books.sh.
 
 ## Step 1: Run the script
 
