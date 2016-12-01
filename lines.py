@@ -32,7 +32,8 @@ def get_random_line(book):
   lines = END_PUNCTUATION.split(book.data)
   line = random.choice(lines) + '.'
   # Remove any newlines.
-  return line.replace('[\n\r]', '')
+  line = line.replace(r'[\n\r]', ' ')
+  return line.strip()
 
 def count_words(line):
   words = line.split()
