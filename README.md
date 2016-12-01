@@ -23,3 +23,5 @@ $ ./lines.py --book_count=1000 --word_count=50000
 
 This ran for 3m25s on my laptop.
 
+The [resulting (terrible) book](result/book.txt).
+
