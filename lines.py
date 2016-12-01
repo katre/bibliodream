@@ -6,6 +6,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import codecs
 import random
 import re
 
@@ -24,14 +25,14 @@ flags.DEFINE_string('output', 'book.txt', 'Filename to write to.')
 def get_random_book(books):
   return random.choice(books)
 
-END_PUNCTUATION = re.compile(r'[.?!]')
+END_PUNCTUATION = re.compile(r'[.?!][ \n]')
 
 def get_random_line(book):
   # Split text on ending punctuation
   lines = END_PUNCTUATION.split(book.data)
   line = random.choice(lines) + '.'
   # Remove any newlines.
-  return line.replace('\n', '')
+  return line.replace('[\n\r]', '')
 
 def count_words(line):
   words = line.split()
@@ -46,7 +47,7 @@ def main(argv=None):
   print('Found %d books' % len(books))
 
   total_words = 0
-  with open(FLAGS.output, 'w') as f:
+  with codecs.open(FLAGS.output, 'w', 'utf-8') as f:
     while total_words < FLAGS.word_count:
       # Pick a random line from a random book.
       book = get_random_book(books)
@@ -57,7 +58,7 @@ def main(argv=None):
       total_words += new_words
 
       # Write the line.
-      f.write(line)
+      f.write(line + '\n\n')
 
 
 if __name__ == '__main__':
