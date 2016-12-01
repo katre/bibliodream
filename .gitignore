@@ -3,3 +3,4 @@ runs/
 *.db
 *.db-journal
 GUTENBERG_data
+book.txt
