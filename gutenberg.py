@@ -58,6 +58,7 @@ from book
   join subject on book.id = subject.book_id
 where
   file.is_utf8 = 'TRUE'
+  and book.lang = 'en'
   %(subject_clause)s
 group by id
 %(order_clause)s
