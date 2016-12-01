@@ -74,9 +74,12 @@ class Book(object):
 
   @property
   def data(self):
-    with codecs.open(self.path, 'r', 'utf-8') as f:
-      text = f.read()
-      return cleanup.strip_headers(text)
+    try :
+      with codecs.open(self.path, 'r', 'utf-8') as f:
+        text = f.read()
+        return cleanup.strip_headers(text)
+    except:
+      return ''
 
   def __str__(self):
     return 'Book %s' % self.id
