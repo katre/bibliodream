@@ -6,11 +6,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import codecs
 import sqlite3
+import os
 
 from tensorflow.contrib.learn.python.learn.datasets import base
 from tensorflow.python.platform import flags
 from tensorflow.python.platform import gfile
+
+import cleanup
 
 try:
   # pylint: disable=g-import-not-at-top
@@ -69,8 +73,9 @@ class Book(object):
 
   @property
   def data(self):
-    with open(self.path, 'r') as f:
-      return f.read()
+    with codecs.open(self.path, 'r', 'utf-8') as f:
+      text = f.read()
+      return cleanup.strip_headers(text)
 
   def __str__(self):
     return 'Book %s' % self.id
