@@ -54,9 +54,9 @@ from book
   join subject on book.id = subject.book_id
 where
   file.is_utf8 = 'TRUE'
-  and upper(subject.name) in (%(subject_clause)s)
+  %(subject_clause)s
 group by id
-order by id
+%(order_clause)s
 limit :limit;
 """
 
@@ -77,13 +77,24 @@ class Book(object):
 
   @classmethod
   # TODO: add data shuffle
-  def load_by_query(cls, conn, limit, subjects):
+  def load_by_query(cls, conn, limit, subjects, random=False):
     print('Looking up %d books to train on.' % limit)
     books = []
 
     # Create the subject-specific query
-    subject_clause = ', '.join(':subject_%d' % i for i in xrange(len(subjects.names)))
-    query = BOOK_QUERY % {'subject_clause': subject_clause}
+    subject_clause = ''
+    if len(subjects.names) > 0:
+      in_statement = ', '.join(':subject_%d' % i for i in xrange(len(subjects.names)))
+      subject_clause = 'and upper(subject.name) in (%s)' % in_statement
+    order_clause = 'order by id'
+    if random:
+      order_clause = 'order by random()'
+    query = BOOK_QUERY % {
+        'subject_clause': subject_clause,
+        'order_clause': order_clause,
+    }
+
+    #print('Query: %s' % query)
 
     # Create the arguments.
     arguments = {}
@@ -164,9 +175,10 @@ class Subjects(object):
 
 # Overall main class.
 class GutenbergData(object):
-  def __init__(self, subjects_limit, book_limit):
+  def __init__(self, subjects_limit, book_limit, random=False):
     self.subjects_limit = subjects_limit
     self.book_limit = book_limit
+    self.random = random
 
     self.subjects_data = None
     self.books_data = None
@@ -184,7 +196,7 @@ class GutenbergData(object):
   @property
   def books(self):
     if not self.books_data:
-      self.books_data = Book.load_by_query(self.conn, self.book_limit, self.subjects)
+      self.books_data = Book.load_by_query(self.conn, self.book_limit, self.subjects, self.random)
     return self.books_data
 
   def labelled_data(self):
